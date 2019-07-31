@@ -378,9 +378,14 @@ func (db *DB) UpdateFindFails(id ID, ip net.IP, fails int) error {
 	return db.storeInt64(nodeItemKey(id, ip, dbNodeFindFails), int64(fails))
 }
 
-// LocalSeq retrieves the local record sequence counter.
+// LocalSeq retrieves the local record sequence counter, defaulting to the current
+// timestamp if no previous exists. This ensures that wiping all data associated
+// with a node (apart from its key) will not generate already used sequence nums.
 func (db *DB) localSeq(id ID) uint64 {
-	return db.fetchUint64(localItemKey(id, dbLocalSeq))
+	if seq := db.fetchUint64(localItemKey(id, dbLocalSeq)); seq > 0 {
+		return seq
+	}
+	return uint64(time.Now().Unix())
 }
 
 // storeLocalSeq stores the local record sequence counter.
